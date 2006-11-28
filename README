@@ -1,0 +1,118 @@
+                             README
+
+                Information about the xotd package                                
+Stephane Fillod's Original REAME as is - Shaun July 2007
+
+                             Notes
+                             -----
+
+This is xotd 0.04, the third release of the XOT daemon for Linux.
+Please test it as much as possible and report me success stories!
+I'd be interested to hear about tests with Cisco routers, and other XOT 
+implementation like SUNlink.
+
+You need recent kernel 2.1.1xx or later to use this program.  This program
+should compile cleanly with either libc5 and glibc (please send
+me reports).
+
+xotd requires the x25tap patch to be applied to the kernel (2.1.115+).
+With this patch, it is possible to have an X.25 device driver in 
+user land, and build bridging systems. x25tap is cloned from ethertap.
+
+	cd /usr/src
+	patch -p0 < x25tap.diff
+
+So rebuild your patched kernel with the following options:
+
+	Kernel/User netlink socket (CONFIG_NETLINK) [Y/n/?]
+	CCITT X.25 Packet Layer (EXPERIMENTAL) (CONFIG_X25) [M/n/y/?]
+	X.25tap network tap (CONFIG_X25TAP) [M/n/y/?]
+
+Next, to compile xotd, just type "make". Since xotd is a multithreaded program,
+the LinuxThreads library must be installed (builtin glibc-2.x).
+
+
+
+[ Programming discussion:
+
+xotd could be coded as a monothreaded program, but IMHO, a select on more
+than 30 sockets and is not very efficient, and waiting to read entirely a big 
+packet waste to much time. Buffering is rather painfull. fork()ing would be 
+much simpler, but sharing the hash table wouldn't be easy.
+To my mind, the multithreaded program is a good compromise, and
+obviously, the best solution would be to code xotd as a kernel thread
+and get rid of x25tap. It's not for tomorrow, but maybe for the day after
+tomorrow :-)
+
+End of discussion ]
+
+
+There is a patch also for X.25 support in net-tools. The patch was
+made for net-tools 1.45, so expect it to be merged by the following
+releases.
+x25-utils should work too, but is obsoleted by the previous patch.
+
+
+For people having Cisco routers, here is a mail from Pasi, which 
+explain how XOT works:
+
+From: Pasi Kaara <ppk@atk.tpo.fi>
+Date: Sat, 19 Aug 95 14:09:44 EETDST
+
+Normal use of XOT
+
+host ---x.25-line---[CISCO]--WAN/LAN link (TCP/IP)--[CISCO]---x.25-line-- host
+
+With rfc1613 software on Linux:
+
+   Linux ---LAN---[CISCO]--x.25--line (serial)
+
+On the cisco side your configuration is like:
+
+-------------
+x25 route 244123456.* ip <ip-number of linux machine>
+-------------
+Only ONE line!
+
+You can use also normal IP-access-lists to controll access to XOT port.
+
+
+On the Linux side, here is how to add a default route:
+
+	insmod x25tap
+	ifconfig x25tap0 up
+	xotd x25tap0 <ip-number of Cisco router>
+	route --x25 add 0/0 x25tap0
+
+
+
+Don't forget to insert x25 and x25tap modules before (if compiled as modules).
+
+xotd can also work in "loopback", that is working on a stand alone machine, 
+but you will be connected only with yourself! It is only for debugging
+purpose, or to play with X.25 sockets (educational purpose, etc.).
+Even if the command "xotd x25tap0 localhost" works, the X.25 stack
+would be in collision because of the LCI numbers.
+
+So, the workaround for XOT loopback, is the following:
+
+	insmod x25tap
+	ifconfig x25tap0 up
+	route --x25 add 123/3 x25tap0
+
+	insmod -o x25tap1  x25tap unit=1
+	ifconfig x25tap1 up
+	route --x25 add 2080/4 x25tap1
+
+	xotd -l 1999 x25tap0 localhost  & xotd -r 1999 x25tap1 localhost &
+
+This trick is not supported, and should be used only for debugging purposes!
+
+
+Have fun with it, and please report bugs, success stories, patches; I'd
+really appreciate!
+
+
+Stephane Fillod
+sfillod@charybde.gyptis.frmug.org
+8 January 1999
