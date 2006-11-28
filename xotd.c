@@ -350,22 +350,21 @@ int main(int argc, char *argv[])
 #endif
     
     for (;;) {
-
-	socklen_t len = sizeof addr;
-	int fd;
-	struct xot *xot;
+        socklen_t len = sizeof addr;
+        int fd;
+        struct xot *xot;
 	
-	if ((fd = accept (sock, (struct sockaddr *) &addr, &len)) == -1) {
-		printd ("accept error: %s", strerror(errno));
-		exit (1);
-	}
+        if ((fd = accept (sock, (struct sockaddr *) &addr, &len)) == -1) {
+            printd ("accept error: %s", strerror(errno));
+            exit (1);
+        }
 
-	if (!(xot = find_xot_for_call (fd, &addr))) {
-		close (fd);
-		continue;
-	}
-	
-	create_inbound (xot);
+        if (!(xot = find_xot_for_call (fd, &addr))) {
+            close (fd);
+            continue;
+        }
+
+        create_inbound (xot);
     }
  
     return 0;
@@ -481,7 +480,7 @@ struct xot *find_xot_for_call (int fd, struct sockaddr_in *addr) {
 
 	return NULL;
 
-    found_device:
+found_device:
 
 	/* Now look for a free lci.  Count down like a DCE */
 
@@ -499,7 +498,7 @@ struct xot *find_xot_for_call (int fd, struct sockaddr_in *addr) {
 
 	return NULL;
 
-    found_lci:
+found_lci:
 
 	xot = calloc (sizeof *xot, 1);
 
@@ -648,7 +647,7 @@ struct xot *find_xot_for_packet (struct xot_device *dev,
 
 	return xot;
 
-    force_clear:
+force_clear:
 
 	printd ("fake clear");
 			
@@ -848,7 +847,7 @@ void *inbound(void *arg)
 	    
 	    goto clear;
 
-	ok:
+ok:
 	    pthread_mutex_lock (&xot->lock);
 
 	    printd ("connected to %s", addr (a));
@@ -998,7 +997,7 @@ clear:
 	    packet [4] = 0;
 	    len = 5;
 
-	send:
+send:
 	    packet [0] = 0x10 + xot->lci / 256;
 	    packet [1] = xot->lci;
 	    
@@ -1023,8 +1022,7 @@ clear:
 
     if (dev->xot [xot->lci] == xot) {
 	    dev->xot [xot->lci] = NULL;
-    }
-    else {
+    } else {
 	    printd ("already zapped (out)");
     }
 
