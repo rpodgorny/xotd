@@ -252,16 +252,16 @@ int main(int argc, char *argv[])
         case 'l':
             lport = atoi(optarg);
             break;
-	case 'b':
-	    bindto = optarg;
-	    bindtointerface++;
-	    break;
-	case 'h':
+        case 'b':
+            bindto = optarg;
+            bindtointerface++;
+            break;
+        case 'h':
             errflg++;
-	    break;
+            break;
         case 'f':
-	    config = optarg;
-	    break;
+            config = optarg;
+            break;
         default:
             errflg++;
 	}
