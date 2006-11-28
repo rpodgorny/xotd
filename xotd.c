@@ -94,8 +94,8 @@
  */
 
 struct xot_header {
-        u_int16_t version;
-        u_int16_t length;
+	u_int16_t version;
+	u_int16_t length;
 };
 
 
@@ -149,8 +149,8 @@ int rport = XOT_PORT;
 void usage();
 
 void daemon_start(void);
-void printd (const char *format, ...);
-void print_x25 (const char *head, const unsigned char *buf, int len);
+void printd(const char *format, ...);
+void print_x25(const char *head, const unsigned char *buf, int len);
 void dump_packet(const unsigned char* pkt, int len,int direction);
 
 static int writen(int fd, unsigned char *ptr, int nbytes);
@@ -181,7 +181,7 @@ static char *addr(struct sockaddr *sa) {
    
 static void busy_xot(struct xot *xot) {
 	++xot->busy;
-	printd ("busy (%d)", xot->busy);
+	printd("busy (%d)", xot->busy);
 }
 	
 
@@ -262,7 +262,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef DEBUG
 	isVerbose++;
-	setvbuf (stderr, NULL, _IOLBF, BUFSIZ);
+	setvbuf(stderr, NULL, _IOLBF, BUFSIZ);
 #endif
 
 	if (config) {
@@ -294,7 +294,7 @@ int main(int argc, char *argv[]) {
 
 	/* Make socket for incoming XOT calls */
 
-	if ((sock = socket (AF_INET, SOCK_STREAM, 0)) == -1) {
+	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		printd("Error creating socket: %s", strerror(errno));
 		return 2;
 	}
@@ -312,7 +312,7 @@ int main(int argc, char *argv[]) {
 			return 2;
 		}
 	} else {
-		addr.sin_addr.s_addr = htonl (INADDR_ANY);
+		addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	}
 
 	if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
@@ -356,7 +356,7 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 
-		create_inbound (xot);
+		create_inbound(xot);
 	}
 
 	return 0;
@@ -388,7 +388,7 @@ int create_outbound(struct xot_device *dev) {
 	
 	unit = dev->tap + NETLINK_TAPBASE;
 	
-	if ((dev->tap = socket (AF_NETLINK, SOCK_RAW, unit)) == -1) {
+	if ((dev->tap = socket(AF_NETLINK, SOCK_RAW, unit)) == -1) {
 		printd("Error creating netlink socket: %s", strerror(errno));
 		return 0;
 	}
@@ -399,15 +399,15 @@ int create_outbound(struct xot_device *dev) {
 
 	if (bind(dev->tap, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
 		printd("Error binding netlink socket: %s", strerror(errno));
-		close (dev->tap);
+		close(dev->tap);
 		return 0;
 	}
 
 	pthread_mutex_init(&dev->lock, NULL);
 
 	if (e = pthread_create(&dev->thread, NULL, outbound, dev)) {
-		printd ("pthread_create (outbound): %s", strerror(e));
-		close (dev->tap);
+		printd("pthread_create (outbound): %s", strerror(e));
+		close(dev->tap);
 		return 0;
 	}
 
@@ -428,8 +428,8 @@ void create_inbound(struct xot *xot) {
 
 	pthread_attr_t attr;
 
-	pthread_attr_init (&attr);
-	pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_DETACHED);
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	if (e = pthread_create(&xot->thread, &attr, inbound, xot)) {
 		printd("pthread_create (inbound): %s", strerror(e));
@@ -463,7 +463,7 @@ struct xot *find_xot_for_call(int fd, struct sockaddr_in *addr) {
 		}
 	}
 
-	printd ("call from unknown address %s", inet_ntoa(addr->sin_addr));
+	printd("call from unknown address %s", inet_ntoa(addr->sin_addr));
 
 	return NULL;
 
@@ -473,15 +473,15 @@ found_device:
 
 	/* Fixme - doesn't allow LCI0 */
 
-	pthread_mutex_lock (&dev->lock);
+	pthread_mutex_lock(&dev->lock);
 
 	for (lci = dev->max_xot - 1; lci; --lci) {
 		if (!dev->xot[lci]) goto found_lci;
 	}
 
-	pthread_mutex_unlock (&dev->lock);
+	pthread_mutex_unlock(&dev->lock);
 
-	printd ("Too many vc's from %s", inet_ntoa(addr->sin_addr));
+	printd("Too many vc's from %s", inet_ntoa(addr->sin_addr));
 
 	return NULL;
 
@@ -531,7 +531,7 @@ struct xot *find_xot_for_packet(struct xot_device *dev, unsigned char *packet, i
 	}
 
 	if (lci >= dev->max_xot) {
-		printd ("Bad lci %d - max %d", lci, dev->max_xot);
+		printd("Bad lci %d - max %d", lci, dev->max_xot);
 		goto force_clear;
 	}
 
@@ -579,8 +579,8 @@ struct xot *find_xot_for_packet(struct xot_device *dev, unsigned char *packet, i
 	}
 
 	/* DANGER - locked device, then xot - always in that order! */
-	pthread_mutex_lock (&xot->lock);
-	pthread_mutex_unlock (&dev->lock);
+	pthread_mutex_lock(&xot->lock);
+	pthread_mutex_unlock(&dev->lock);
 
 	if (xot->sock == -1) {
 		/* Not yet connected, only legal thing is CLEAR REQUEST */
@@ -786,7 +786,7 @@ void *inbound(void *arg) {
 		for (a = dev->addr; a < dev->addr + dev->max_addr; ++a) {
 			sock = socket(a->sa_family, SOCK_STREAM, 0);
 			if (sock == -1) {
-				printd ("socket: %s", strerror(errno));
+				printd("socket: %s", strerror(errno));
 				goto clear;
 			}
 
@@ -831,7 +831,7 @@ ok:
 	*tap_packet = 0x00;	/* Data.ind */
 
 	do {
-		nread = readn (xot->sock, (unsigned char*)&header, sizeof(header));
+		nread = readn(xot->sock, (unsigned char*)&header, sizeof(header));
 		if (nread != sizeof(header)) {
 			if (nread < 0 && (errno != EPIPE || errno != ENOTCONN))
 				printd("readn error: %s", strerror(errno));
@@ -881,7 +881,7 @@ ok:
 			case CALL_REQUEST:
 				/* Should check he doesn't send 2 calls */
 				if ((xot->head.length = len) > sizeof(xot->call)) {
-					xot->head.length = sizeof xot->call;
+					xot->head.length = sizeof(xot->call);
 				}
 				memcpy(xot->call, packet, xot->head.length);
 		}
@@ -1087,7 +1087,7 @@ void print_x25(const char *head, const unsigned char *packet, int len) {
 			}
 		case RNR(1): case RNR(2): case RNR(3):
 		case RNR(4): case RNR(5): case RNR(6): case RNR(7):
-			printd ("%s lci=%d RNR (pr=%d)", head, lci, pti >> 5);
+			printd("%s lci=%d RNR (pr=%d)", head, lci, pti >> 5);
 			break;
 		case REJ(0):
 			if (extended) {
@@ -1156,7 +1156,7 @@ void read_config (char *name) {
 		exit(1);
 	}
 
-	while (fgets (line, sizeof line, f)) {
+	while (fgets(line, sizeof(line), f)) {
 		char *device_name = strtok(line, " \t\n");
 		char *remote_name = strtok(NULL, " \t\n");
 		char *circuits = strtok(NULL, " \t\n");
@@ -1164,18 +1164,18 @@ void read_config (char *name) {
 		if (!device_name || *device_name == '#') continue;
 
 		if (!remote_name) {
-			fprintf (stderr, "Bad line %s in %s\n", device_name, name);
+			fprintf(stderr, "Bad line %s in %s\n", device_name, name);
 			continue;
 		}
 
-		config_device (device_name, remote_name, circuits);
+		config_device(device_name, remote_name, circuits);
 	}
 
 	if (f != stdin) fclose(f);
 }
 
 
-void config_device (char *device_name, char *remote_name, char *circuits) {
+void config_device(char *device_name, char *remote_name, char *circuits) {
 	struct hostent *host;
 	int n;
 
@@ -1189,7 +1189,7 @@ void config_device (char *device_name, char *remote_name, char *circuits) {
 		return;
 	}
 
-	if (!(host = gethostbyname (remote_name))) {
+	if (!(host = gethostbyname(remote_name))) {
 		fprintf(stderr, "Can't find %s for %s\n", remote_name, device_name);
 		return;
 	}
@@ -1197,7 +1197,7 @@ void config_device (char *device_name, char *remote_name, char *circuits) {
 	if (!circuits) {
 		vc = 256;
 	} else if (sscanf(circuits, "%d", &vc) != 1 || vc <= 0 || vc > 4095) {
-		fprintf (stderr, "Bad vc's %s for %s\n", circuits, device_name);
+		fprintf(stderr, "Bad vc's %s for %s\n", circuits, device_name);
 		return;
 	}
 
