@@ -151,10 +151,10 @@ void usage();
 void daemon_start(void);
 void printd(const char *format, ...);
 void print_x25(const char *head, const unsigned char *buf, int len);
-void dump_packet(const unsigned char* pkt, int len,int direction);
+void dump_packet(const unsigned char* pkt, int len, int direction);
 
-static int writen(int fd, unsigned char *ptr, int nbytes);
-static int readn(int fd, unsigned char *ptr, int nbytes);
+static ssize_t writen(int fd, unsigned char *ptr, size_t nbytes);
+static ssize_t readn(int fd, unsigned char *ptr, size_t nbytes);
 
 struct xot *find_xot_for_call(int fd, struct sockaddr_in *addr);
 
@@ -405,7 +405,8 @@ int create_outbound(struct xot_device *dev) {
 
 	pthread_mutex_init(&dev->lock, NULL);
 
-	if (e = pthread_create(&dev->thread, NULL, outbound, dev)) {
+	e = pthread_create(&dev->thread, NULL, outbound, dev);
+	if (e) {
 		printd("pthread_create (outbound): %s", strerror(e));
 		close(dev->tap);
 		return 0;
@@ -431,7 +432,8 @@ void create_inbound(struct xot *xot) {
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-	if (e = pthread_create(&xot->thread, &attr, inbound, xot)) {
+	e = pthread_create(&xot->thread, &attr, inbound, xot);
+	if (e) {
 		printd("pthread_create (inbound): %s", strerror(e));
 		/* clean up ... */
 		return;
@@ -640,7 +642,7 @@ force_clear:
 void *outbound(void *arg) {
 	struct xot_device *dev = arg;
 
-	int nread;
+	ssize_t nread;
 
 	/* Many ways of addressing same data.  UGERLY */
 
@@ -769,7 +771,8 @@ void *inbound(void *arg) {
 	struct xot *xot = arg;
 	struct xot_device *dev = xot->device;
 
-	int nread, len;
+	ssize_t nread;
+	size_t len;
 
 	struct xot_header header;
 	unsigned char tap_packet[MAX_PKT_LEN + 1];
@@ -887,11 +890,11 @@ ok:
 		}
 
 		/* Check gfi, lci of packet */
-		if ((packet [0] & 0x3f) != (xot->call[0] & 0x3f) || packet[1] != xot->call[1]) {
+/*		if ((packet [0] & 0x3f) != (xot->call[0] & 0x3f) || packet[1] != xot->call[1]) {
 			printd("Bad GFI/LCN %02x, %02x", packet[0], packet[1]);
 			break;
 		}
-
+*/
 		/* Fix LCI to be what we want */
 
 		packet[0] = (packet[0] & 0xf0) + xot->lci / 256;
@@ -974,8 +977,9 @@ send:
  * Write "n" bytes to a descriptor.
  * Use in place of write() when fd is a stream socket.
  */
-static int writen(int fd, unsigned char *ptr, int nbytes) {
-	int	nleft, nwritten;
+static ssize_t writen(int fd, unsigned char *ptr, size_t nbytes) {
+	ssize_t nwritten;
+	size_t nleft;
 
 	nleft = nbytes;
 	while (nleft > 0) {
@@ -991,8 +995,9 @@ static int writen(int fd, unsigned char *ptr, int nbytes) {
  * Read "n" bytes from a descriptor.
  * Use in place of read() when fd is a stream socket.
  */
-static int readn(int fd, unsigned char *ptr, int nbytes) {
-	int	nread, nleft;
+static ssize_t readn(int fd, unsigned char *ptr, size_t nbytes) {
+	ssize_t nread;
+	size_t nleft;
 
 	if (!ptr) return -1;
 
