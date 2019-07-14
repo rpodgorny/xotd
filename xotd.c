@@ -113,7 +113,7 @@ struct xot {
 	pthread_mutex_t lock;
 	int busy;
 	int closing;
-	
+
 	struct xot_header head;		/* Should be contig */
 	unsigned char call[256];
 };
@@ -175,15 +175,15 @@ static char *addr(struct sockaddr *sa) {
 	}
 }
 
-	
+
 
 /* xot must be locked before use */
-   
+
 static void busy_xot(struct xot *xot) {
 	++xot->busy;
 	printd("busy (%d)", xot->busy);
 }
-	
+
 
 /* xot MUST NOT be locked before use; asymetry rules */
 
@@ -191,14 +191,14 @@ void idle_xot(struct xot *xot) {
 	pthread_mutex_lock (&xot->lock);
 
 	printd("idle (busy = %d, closing = %d)", xot->busy, xot->closing);
-	
+
 	if (!--xot->busy && xot->closing) {
 		pthread_cond_broadcast(&wait_for_idle);
 	}
 
 	pthread_mutex_unlock(&xot->lock);
 }
-    
+
 
 
 static inline int get_lci(const unsigned char *packet) {
@@ -330,17 +330,17 @@ int main(int argc, char *argv[]) {
 	/* Start all the outbound threads, copy x.25 -> tcp */
 
 	unit = 0;
-    
+
 	for (dev = device; dev < device + max_device; ++dev) {
 		if (create_outbound(dev)) ++unit;
 	}
 
 	if (!unit) return 2;
-    
+
 #ifdef DEBUG
 	printd("Waiting for connections.");
 #endif
-    
+
 	for (;;) {
 		socklen_t len = sizeof(addr);
 		int fd;
@@ -385,9 +385,9 @@ int create_outbound(struct xot_device *dev) {
 	int unit;
 	struct sockaddr_nl addr;
 	int e;
-	
+
 	unit = dev->tap + NETLINK_TAPBASE;
-	
+
 	if ((dev->tap = socket(AF_NETLINK, SOCK_RAW, unit)) == -1) {
 		printd("Error creating netlink socket: %s", strerror(errno));
 		return 0;
@@ -395,7 +395,7 @@ int create_outbound(struct xot_device *dev) {
 
 	memset(&addr, 0, sizeof(addr));
 	addr.nl_family = AF_NETLINK;
-	addr.nl_groups = 1; 
+	addr.nl_groups = 1;
 
 	if (bind(dev->tap, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
 		printd("Error binding netlink socket: %s", strerror(errno));
@@ -515,7 +515,7 @@ found_lci:
 struct xot *find_xot_for_packet(struct xot_device *dev, unsigned char *packet, int len) {
 	struct xot *xot;
 	unsigned char *tap_packet = packet - 1;
-	
+
 	int lci = get_lci(packet);
 
 	printd("find_xot_for_packet");
@@ -538,7 +538,7 @@ struct xot *find_xot_for_packet(struct xot_device *dev, unsigned char *packet, i
 	}
 
 	pthread_mutex_lock(&dev->lock);
-		
+
 	if (!(xot = dev->xot[lci])) {
 
 		/* Not connected */
@@ -553,7 +553,7 @@ struct xot *find_xot_for_packet(struct xot_device *dev, unsigned char *packet, i
 				printd("no connection and packet not CALL");
 				goto force_clear;
 			case CALL_REQUEST:
-				break;	
+				break;
 			/* All is good, make the call */
 		}
 
@@ -571,7 +571,7 @@ struct xot *find_xot_for_packet(struct xot_device *dev, unsigned char *packet, i
 		/* Save call packet 'till connected to remote */
 		xot->head.length = htons(len);
 		xot->head.version = htons(XOT_VERSION);
-		
+
 		memcpy(xot->call, packet, len);
 
 		/* Create thread for TCP->X.25, it'll make the call */
@@ -610,7 +610,7 @@ struct xot *find_xot_for_packet(struct xot_device *dev, unsigned char *packet, i
 	xot->cleared = packet[2];
 
 	/* Copy GFI, LCI from call packet */
-	packet[0] = (packet[0] & 0xa0) | (xot->call[0] & 0x3f); 
+	packet[0] = (packet[0] & 0xa0) | (xot->call[0] & 0x3f);
 	packet[1] = xot->call[1];
 
 	return xot;
@@ -618,7 +618,7 @@ struct xot *find_xot_for_packet(struct xot_device *dev, unsigned char *packet, i
 force_clear:
 
 	printd("fake clear");
-			
+
 	packet[2] = CLEAR_REQUEST;
 	packet[3] = 0x05;
 	packet[4] = 0;
@@ -656,18 +656,18 @@ void *outbound(void *arg) {
 
 		nread = read(dev->tap, tap_packet, MAX_PKT_LEN + 1);
 
-		dump_packet(tap_packet,nread,FROM_TAP);	
+		dump_packet(tap_packet,nread,FROM_TAP);
 
 		if (nread < 0) {
 			printd("read error: %s", strerror(errno));
 			break;
 		}
-	
+
 		if (nread == 0)		/* strange, ignore it!? */
 			continue;
 
 		--nread;	/* Ignore NETLINK byte */
-	
+
 		switch (*tap_packet) {
 			case 0x00:  			/* data request */
 				if (nread < MIN_PKT_LEN)	/* invalid packet size ? */
@@ -680,7 +680,7 @@ void *outbound(void *arg) {
 				if (!(xot = find_xot_for_packet(dev, packet, nread))) break;
 
 				printd("forward to TCP");
-		
+
 				header->version = htons(XOT_VERSION);
 				header->length = htons(nread);
 
@@ -689,7 +689,7 @@ void *outbound(void *arg) {
 				/* Don't care if write fails, read should fail too and that'll tell X.25 for us */
 
 				writen(xot->sock, (unsigned char *)header, nread);
-	
+
 				if (packet[2]  == CLEAR_CONFIRMATION) {
 					/* After this packet this vc is available for use */
 					printd("outbound done with xot %p", xot);
@@ -739,7 +739,7 @@ void *outbound(void *arg) {
 				dump_packet(tap_packet, 1, TO_TAP);
 				break;
 
-			case 0x03: 
+			case 0x03:
 #ifdef DEBUG
 				printd("Tap->TCP: [param], %d data bytes", nread);
 #endif
@@ -1057,7 +1057,7 @@ void print_x25(const char *head, const unsigned char *packet, int len) {
 
 	int lci = get_lci(packet);
 	int pti = packet[2];
-	
+
 	if (!(pti & 1)) {	/* Data packet */
 		int ps = pti >> 1, pr, m;
 		if (extended) {
@@ -1188,7 +1188,7 @@ void config_device(char *device_name, char *remote_name, char *circuits) {
 	int vc;
 
 	struct xot_device *dev;
-	
+
 	if (unit < 0 || unit > MAX_LINKS - NETLINK_TAPBASE - 1) {
 		fprintf(stderr, "Invalid netlink tap unit %s\n", device_name);
 		return;
@@ -1216,7 +1216,7 @@ void config_device(char *device_name, char *remote_name, char *circuits) {
 
 	dev->max_xot = vc;
 	dev->xot = calloc(dev->max_xot, sizeof(*dev->xot));
-    
+
 	for (n = 0; host->h_addr_list[n]; ++n);
 
 	dev->addr = calloc(n, sizeof(*device->addr));
